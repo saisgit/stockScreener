@@ -34,3 +34,39 @@ class NSE:
       return list(df.index)
     else:
       return df
+    
+  def equity_info(self,symbol,trade_info=False):
+    symbol = symbol.replace(' ','%20').replace('&','%26')
+    url = 'https://www.nseindia.com/api/quote-equity?symbol=' + symbol + ("&section=trade_info" if trade_info else "")
+    data = self.session.get(url,headers=self.headers).json()
+    return data
+  
+  def future_data(self,symbol,indices=False):
+    symbol = symbol.replace(' ','%20').replace('&','%26')
+    url = 'https://www.nseindia.com/api/quote-derivative?symbol=' + symbol
+    data = self.session.get(url,headers=self.headers).json()
+    lst = []
+    for i in data["stocks"]:
+      if i["metadata"]["instrumentType"] == ("Index Futures" if indices else "Stock Futures"):
+        lst.append(i["metadata"])
+    df = pd.DataFrame(lst)
+    df = df.set_index("identifier",drop=True)
+    return df
+  
+  def option_data(self,symbol,indices=False):
+    symbol = symbol.replace(' ','%20').replace('&','%26')
+    if not indices:
+      url = 'https://www.nseindia.com/api/option-chain-equities?symbol=' + symbol
+    else:
+      url = 'https://www.nseindia.com/api/option-chain-indices?symbol=' + symbol
+    data = self.session.get(url,headers=self.headers).json()["records"]["data"]
+    my_df = []
+    for i in data:
+      for k,v in i.items():
+        if k == "CE" or k == "PE":
+          info = v
+          info["instrumentType"] = k
+          my_df.append(info)
+    df = pd.DataFrame(my_df)
+    df = df.set_index("identifier",drop=True)
+    return df
