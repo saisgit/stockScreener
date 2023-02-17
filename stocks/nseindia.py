@@ -70,3 +70,39 @@ class NSE:
     df = pd.DataFrame(my_df)
     df = df.set_index("identifier",drop=True)
     return df
+  
+  def get_expiry(self,symbol,indices=False):
+    symbol = symbol.replace(' ','%20').replace('&','%26')
+    url = 'https://www.nseindia.com/api/quote-derivative?symbol=' + symbol
+    data = self.session.get(url,headers=self.headers).json()
+    lst = []
+    for i in data["stocks"]:
+      if i["metadata"]["instrumentType"] == ("Index Futures" if indices else "Stock Futures"):
+        lst.append(i["metadata"])
+    df = pd.DataFrame(lst)
+    df = df.set_index("identifier",drop=True)
+    df = df['expiryDate'].tolist()[0]
+    return df
+  
+  
+nse = NSE()
+df = nse.equity_market_data("Securities in F&O")[['open','dayHigh','dayLow','lastPrice']].reset_index()
+OL = df[df['open']==df['dayLow']]
+print(OL)
+OH = df[df['open']==df['dayHigh']]
+print(OH)
+
+def getoptionstrike(stock,price,pc):
+    opt_df = nse.option_data(stock)
+    opt_df.reset_index(inplace=True)
+    expiry = nse.get_expiry(stock)
+    ed = opt_df[opt_df['expiryDate']==expiry]
+    ed = ed[ed['instrumentType']==pc]
+    ed_below = ed[ed['strikePrice']<price].tail(3)
+    ed_above = ed[ed['strikePrice']>price].head(3)
+    print(ed.columns)
+    print(ed_below[['identifier','strikePrice','expiryDate','openInterest','totalTradedVolume', 'totalBuyQuantity']])
+    print(ed_above[['identifier','strikePrice','expiryDate','openInterest','totalTradedVolume', 'totalBuyQuantity']])
+
+getoptionstrike('ULTRACEMCO',7176,'CE')
+
