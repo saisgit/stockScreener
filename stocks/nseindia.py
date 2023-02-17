@@ -6,7 +6,7 @@ pd.set_option('display.width',5000)
 
 class NSE:
   pre_market_categories = ['NIFTY 50','Nifty Bank','Emerge','Securities in F&O','Others','All']
-  equity_market_categories =
+  equity_market_categories = []
   holidays_categories = ["Clearing","Trading"]
   
   def __init__(self):
